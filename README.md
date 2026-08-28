@@ -22,7 +22,9 @@ QAuxiliary 的相关实现同时包含 MessagingStyle、通知气泡、快捷方
 
 产物位于 `app/build/outputs/apk/debug/app-debug.apk`。需要 Android SDK 35、JDK 17 或更高版本，以及可访问 Google Maven 和 Xposed Maven 的网络环境。
 
-仓库内已经附带 `.github/workflows/build.yml`：提交到 GitHub 后，在 Actions 中运行 `Build APK`，它会自动准备 Android SDK 35，并把 `app-debug.apk` 上传为构建产物。
+仓库内已经附带 `.github/workflows/build.yml`：提交到 GitHub 后，在 Actions 中运行 `Build APK`，它会自动准备 Android SDK 35、使用仓库 Secrets 中的固定签名，并把 `app-debug.apk` 上传为构建产物。正式 push 或手动运行时，`versionCode` 使用 GitHub Actions 的 `run_number` 自动递增，`versionName` 为 `0.1.<run_number>`；来自外部 fork 的 Pull Request 不会获得签名 Secrets。
+
+固定签名需要在仓库 Settings → Secrets and variables → Actions 中配置以下四个 Secrets：`SPECIALCARE_KEYSTORE_BASE64`、`SPECIALCARE_STORE_PASSWORD`、`SPECIALCARE_KEY_ALIAS`、`SPECIALCARE_KEY_PASSWORD`。不要把 keystore 或密码提交到公开仓库。
 
 ## 安装和启用
 
@@ -33,6 +35,8 @@ QAuxiliary 的相关实现同时包含 MessagingStyle、通知气泡、快捷方
 5. 用一个特别关心好友和一个普通好友各发一条私聊消息，确认只有前者进入独立渠道；群消息不改动。
 
 如果手机里已经用过 QAuxiliary，`QQ_Friend_Special` 这个渠道 ID 会复用 QQ 现有的同名渠道及其系统设置。Android 不允许应用修改用户已经创建的渠道的重要性、声音等设置，需要手动在系统通知设置中调整。
+
+如果从旧版 Actions APK 更新到首次使用固定签名的 APK，需要先卸载旧版一次；旧版使用的是临时 runner 的 debug 签名，无法与新签名直接覆盖安装。之后同一仓库的构建会保持相同签名，只需递增版本号即可覆盖更新。
 
 使用本模块时，建议关闭 QAuxiliary 中的“MessagingStyle通知”功能，避免两个模块同时改写同一条通知。为了降低 Hook 面，本模块不保证 QQ 或 LSPosed 的检测风险为零；它只是把本模块自身的 Hook 和行为缩减到最小。
 

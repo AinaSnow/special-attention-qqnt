@@ -27,7 +27,33 @@ jobs:
       - name: Install Android SDK 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Build debug APK
+      - name: Prepare stable signing key
+        env:
+          SPECIALCARE_KEYSTORE_BASE64: ${{ secrets.SPECIALCARE_KEYSTORE_BASE64 }}
+          SPECIALCARE_STORE_PASSWORD: ${{ secrets.SPECIALCARE_STORE_PASSWORD }}
+          SPECIALCARE_KEY_ALIAS: ${{ secrets.SPECIALCARE_KEY_ALIAS }}
+          SPECIALCARE_KEY_PASSWORD: ${{ secrets.SPECIALCARE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SPECIALCARE_KEYSTORE_BASE64" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              echo "Building an external pull request with the temporary debug key because repository secrets are unavailable."
+              exit 0
+            fi
+            echo "::error::Missing SPECIALCARE_KEYSTORE_BASE64"
+            exit 1
+          fi
+          test -n "$SPECIALCARE_STORE_PASSWORD" || { echo "::error::Missing SPECIALCARE_STORE_PASSWORD"; exit 1; }
+          test -n "$SPECIALCARE_KEY_ALIAS" || { echo "::error::Missing SPECIALCARE_KEY_ALIAS"; exit 1; }
+          test -n "$SPECIALCARE_KEY_PASSWORD" || { echo "::error::Missing SPECIALCARE_KEY_PASSWORD"; exit 1; }
+          printf '%s' "$SPECIALCARE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/specialcare-release.jks"
+
+      - name: Build signed debug APK
+        env:
+          SIGNING_STORE_FILE: ${{ runner.temp }}/specialcare-release.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.SPECIALCARE_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SPECIALCARE_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SPECIALCARE_KEY_PASSWORD }}
         run: chmod +x gradlew && ./gradlew :app:assembleDebug --no-daemon
 
       - name: Upload APK
