@@ -8,8 +8,7 @@
 
 QAuxiliary 的相关实现同时包含 MessagingStyle、通知气泡、快捷方式、快捷回复、通知清理和历史消息等逻辑。这个项目只保留“识别特别关心 + 改通知渠道”这一条路径：
 
-- NT QQ：跟踪 `RecentContactInfo` 到最终 `Notification` 的关联，在 `NotificationFacade` 提交通知前改渠道。
-- 旧版 QQ：在 `MobileQQServiceExtend` 生成通知后，识别标题中的 `[特别关心]`，再改渠道。
+- NT/旧版 QQ：只 Hook 最终的 `NotificationManager.notify(...)` 入口，识别通知标题中的 `[特别关心]`，再改渠道。
 - 不改消息正文、标题、图标、PendingIntent、通知 ID 或通知样式。
 - 不 Hook QQ 的撤回、清空通知、气泡、快捷回复、Activity 或发送消息逻辑。
 
@@ -39,12 +38,11 @@ QAuxiliary 的相关实现同时包含 MessagingStyle、通知气泡、快捷方
 
 ## 日志和兼容性
 
-安装成功或找不到入口时会写入 Xposed 日志，标签内容包含 `SpecialCareNotification`。如果当前 QQ 版本改了类名、字段名或通知链，模块会放弃对应路径，不会主动重建通知。
+安装成功、最终通知入口被触发或匹配到特别关心通知时会写入 Xposed 日志，标签内容包含 `SpecialCareNotification`。如果当前 QQ 版本不再把特别关心标记放在通知标题中，模块不会主动重建或伪造通知。
 
 本项目的实现依据 QAuxiliary 中的相关实现和公开源码整理，重点参考：
 
-- `MessagingStyleNotification.kt` 的 NT 通知关联和 `specialCareFlag` / `eventTypeInMsgBox=1006` 判定。
-- `NonNTMessageStyleNotification.kt` 的旧版 `[特别关心]` 标题判定。
+- `SpecialCareNewChannel.kt` 的最终 `NotificationManager.notify(...)` Hook 和 `[特别关心]` 标题判定。
 
 上游项目地址：<https://github.com/cinit/QAuxiliary>
 
